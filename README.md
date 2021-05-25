@@ -24,7 +24,7 @@ The model is showed as flow chart follow:
 
 To enhance the speed of the program, I use Trie to save vocabularies. Each time we want to get candidates for a word, the program will search the Trie with DFS algorithm and Damerau-Levenshtein Distance. The code for this part can be found in "channel_model.py".
 
-Something interesting is that, benifiting from the dfs algorithm, we can search a larger space for candidates compared with dynamic program algorithm. In other words, if we use the dynamic algorithm, the edited characters will not be edited again. But in dfs, we can allow the edited characters to be edited again and again. Therefore, dfs can find more candidates than dynamic program. By the way, I sum the probability of all possible editing path for a candidate word. The code for this part is showed as follow:
+Something interesting is that, benifiting from the dfs algorithm, we can search a larger space for candidates compared with dynamic program algorithm. In other words, if we use the dynamic algorithm, the edited characters will not be edited again. But in dfs, we can allow the edited characters to be edited again and again. Therefore, dfs can find more candidates than dynamic program. By the way, I sum the probability of all possible editing path for a candidate. The code for this part is showed as follow:
 
 ```python
 def __search_candidates(self, p: TrieNode, prefix, word, logprob, edit_distance):
@@ -101,7 +101,7 @@ We can see that if we use the corpus whose category is close to test set, the re
 | reuters | 10^-5 | trigram        | √             | 99.1        | 18.8    |
 | reuters | 1     | trigram        | √             | 64.6        | 19.0    |
 
-From the table we can find that the accuracy increases with the decrease of k. The reason is that if we use large k, such as 1, the probability of words already appeared in corpus will be dominated by the V * k and quickly drop because of the tremendous V(in reuters, V is nearly 60000). And then the differences between candidates will become smaller, making inference more difficult. Laplace smoothing isn't a really good smoothing method. And I suggest that k should be set to (1/ V) if possible.
+From the table we can find that the accuracy increases with the decrease of k. The reason is that if we use large k, such as 1, the probability of words already appeared in corpus will be dominated by the V * k and quickly drop because of the tremendous V(in reuters, V is nearly 60000). And then the difference between candidates will become smaller, making inference more difficult. Laplace smoothing isn't a really good smoothing method. And I suggest that k should be set to (1/ V) if possible.
 
 ## Effect of language model
 
@@ -133,10 +133,16 @@ The channel model plays an important role in the spell-correct task.
 
 # VII. Other Things
 
-- When dealing with the real word, I use the noisy_channel_prob * language_model_prob as the probability of the canidate words. And I assume that the noisy_channel_prob of the original word is 1, which makes the change for real word will be difficult and only the highly possible candidate word can be selected to substitute the original word.
+- When dealing with the real word, I use the noisy_channel_prob * language_model_prob as the probability of the canidate words. And I assume that the noisy_channel_prob of the original word is 1, which makes the change for real word difficult so that only the highly possible candidate can be selected to substitute the original word.
 
 # VIII. Reference
 
 - https://www.geeksforgeeks.org/spell-checker-using-trie/
+
 - https://en.wikipedia.org/wiki/Damerau–Levenshtein_distance
+
 - http://norvig.com/ngrams/spell-errors.txt
+
+- [A Spelling Correction Program Based on a Noisy Channel Model] (https://github.com/Photooon/spell-correct/blob/master/ref/A_Spelling_Correction_Program_Based_on_a_Noisy_Cha.pdf)
+
+  
