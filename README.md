@@ -122,11 +122,20 @@ This result is reasonable. Something needs to be specified is that the program o
 
 The channel model plays an important role in the spell-correct task.
 
-# VI. Other Things
+# VI. Final Model
+
+- Corpus: Reuters
+- k: 10^-6
+- LM: trigram
+- Channel model
+- **Accuracy: 99.2%**
+- **Time: 0.0187 s/sent**
+
+# VII. Other Things
 
 - When dealing with the real word, I use the noisy_channel_prob * language_model_prob as the probability of the canidate words. And I assume that the noisy_channel_prob of the original word is 1, which makes the change for real word will be difficult and only the highly possible candidate word can be selected to substitute the original word.
 
-# Reference
+# VIII. Reference
 
 - https://www.geeksforgeeks.org/spell-checker-using-trie/
 - https://en.wikipedia.org/wiki/Damerau–Levenshtein_distance
