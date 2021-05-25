@@ -1,122 +1,133 @@
 # I. Dataset
 
-- DeepMind Q&A Dataset
-  - Content: CNN articles, Daily Mail articles
-  - Reference: https://cs.nyu.edu/~kcho/DMQA/
-
-
+- Reuters
+- Brown
+- Webtext
 
 # II. Preprocess
 
-fetch data:
+For each corpus, I tokenize every sentence and add '\<s\>' and '\</s\>' before and after it, and then save them into file.
 
-```python
-import nltk
-
-nltk.data.path.append('/Users/lw/Code/toolkit/nltk_data')
-raw = nltk.corpus.reuters.raw()
-with open('./corpus/reuters_raw.txt', 'w') as f:
-    f.write(raw)
-```
-
-generate models:
-
-```sh
-./ngram-count -read ../corpus/reuters_train_countfile -lm ../corpus/reuters_train_kndiscount_lm -interpolate -kndiscount
-```
-
-```sh
-./ngram-count -read ../corpus/reuters_train_countfile -lm ../corpus/reuters_train_addone_lm -interpolate -addsmooth
-```
-
-```sh
-./ngram-count -read ../corpus/reuters_train_countfile -lm ../corpus/reuters_train_goodturing_lm
-```
-
-ppl test:
-
-```sh
-./ngram -lm ../models/reuters_train_addone_lm -ppl ../corpus/reuters_test_raw
-```
-
-test result:
-
-| model                  | logprob   | ppl      | ppl1     |
-| ---------------------- | --------- | -------- | -------- |
-| reusters_goodturing_lm | -938098.7 | 251.027  | 525.1339 |
-| reusters_addone_lm     |           |          |          |
-| reusters_kndiscount_lm | -926511.2 | 234.4655 | 486.0366 |
-
-
+The Code for this part could be found in "util.py".
 
 # III. Language model
 
-- Strategy: add-k smooth and stupid backoff
+Language model = add-k smoothing + backoff
 
-A big problem:
+The model is showed as flow chart follow:
 
-srilm will backoff to (n-1)-gram if the count of n-gram is zero, and do not use the add-k smooth. Maybe the reason is that, if we use the add-k smooth method for every combination, the file is too large to save the probability.
-
-reference:
-
-- https://zhuanlan.zhihu.com/p/99906900 (a big problem)
+![language model](./README.assets/language model.png)
 
 # IV. Channel model
 
 ## Candidate model
 
-use the trie as basic data structure.
+To enhance the speed of the program, I use Trie to save the vocabularies. Each time we want to get candidates for a word, the program will search the Trie with DFS algorithm and Damerau-Levenshtein Distance. The code for this part can be found in "channel_model.py".
 
-we can get candidates of a word from model by dfs the trie.
+Something interesting is that, benifiting from the dfs algorithm, we can search a larger space for candidate words compared with dynamic program algorithm. In other words, if we use the dynamic algorithm, the edited characters will not be edited again. But in dfs, we can allow the edited characters to be edited again and again. Therefore, dfs can find more candidate words than dynamic program. By the way, I sum the probability of all possible editing path for a candidate word. The code for this part is showed as follow:
 
-a problem: 只乘以修改部分的概率吗？
+```python
+def __search_candidates(self, p: TrieNode, prefix, word, logprob, edit_distance):
+    # 递归出口
+    if edit_distance == 0:
+        if p.search(word):
+            cand_word = prefix + word
+            if cand_word in self.candidates:
+                self.candidates[cand_word] = log10(pow(10, self.candidates[cand_word]) + pow(10, logprob))
+                # different path to the same result should be added together
+            else:
+                self.candidates[cand_word] = logprob
+        return
+    elif edit_distance < 0:
+        return
 
-reference:
+    # 递归过程
+    # 保持首字母不变
+    if len(word) != 0 and word[0] in p.children:
+        self.__search_candidates(p.children[word[0]], prefix + word[0], word[1:], logprob, edit_distance)
 
-- https://www.geeksforgeeks.org/spell-checker-using-trie/
+    # 添加首字母
+    for ch in p.children:
+        self.__search_candidates(p.children[ch], prefix + ch, word,
+                                     logprob + self.confusion.logprob_del(prefix[-1] if len(prefix) > 0 else '<s>', ch),
+                                     edit_distance - 1)
+
+    # 删除首字母
+    if len(word) > 0:
+        self.__search_candidates(p, prefix, word[1:],
+                                     logprob + self.confusion.logprob_ins(prefix[-1] if len(prefix) > 0 else '<s>',
+                                                                          word[0]),
+                                     edit_distance - 1)
+
+    # 置换首字母
+    if len(word) > 0:
+        for ch in p.children:
+            self.__search_candidates(p.children[ch], prefix + ch, word[1:],
+                                         logprob + self.confusion.logprob_sub(word[0], ch),
+                                         edit_distance - 1)
+
+    # 交换第1、第2个字母
+    if len(word) >= 2:
+        self.__search_candidates(p, prefix, word[1] + word[0] + word[2:],
+                                     logprob + self.confusion.logprob_trans(word[1], word[0]),
+                                     edit_distance - 1)
+
+    return
+```
 
 ## Confusion Matrix
 
-use Damerau-Levenshtein distance
-
-generate matrix from spell-error.txt(for error count) and corpus of reuters(for char statistics)
-
-smooth with add one method.
-
-a problem: 为什么用错误的数量除以出现的频率
-
-此外还有大小写的问题？
-
-reference: https://en.wikipedia.org/wiki/Damerau–Levenshtein_distance
-
-- i used the matrix from paper for comparison, and substitue the ' with " and # with <s> in the data file.
+I generate the confusion matrix from "spell-error.txt". The code for this part can be found in "./confusion_matrix/confusion_matrix.py"
 
 # V. Experiment Result
 
-non-word only:
+## Effect of Corpus
 
-| corpus  | smoothing method | language model | channel model | accuracy(%) | time(s) |
-| ------- | ---------------- | -------------- | ------------- | ----------- | ------- |
-| reuters | add-k            | unigram        | -             | 85.90       | 3.377   |
-| reuters | add-k            | bigram         | -             | 85.7        | 3.474   |
-| reuters | add-k            | trigram        | -             | 84.89       | 3.329   |
+| corpus     | sentences count | k     | language model | channel model | accuracy(%) | time(s) |
+| ---------- | --------------- | ----- | -------------- | ------------- | ----------- | ------- |
+| reuters    | 50981           | 10^-6 | unigram        | √             | 87.6        | 11.3    |
+| brown-news | 4623            | 10^-6 | unigram        | √             | 76.9        | 10.2    |
+| brown      | 57340           | 10^-6 | unigram        | √             | 79.2        | 11.9    |
+| webtext    | 25728           | 10^-6 | unigram        | √             | 70.9        | 10.6    |
 
+We can see that if we use the corpus whose category is close to test set, the result will be more accurate. Moreover, the scale of corpus is also important.
 
+## Effect of k in add-k smoothing
 
-# VI. Some Thoughs
+| corpus  | k     | language model | channel model | accuracy(%) | time(s) |
+| ------- | ----- | -------------- | ------------- | ----------- | ------- |
+| reuters | 10^-7 | trigram        | √             | 99.2        | 18.9    |
+| reuters | 10^-6 | trigram        | √             | 99.2        | 18.7    |
+| reuters | 10^-5 | trigram        | √             | 99.1        | 18.8    |
+| reuters | 1     | trigram        | √             | 64.6        | 19.0    |
 
-- Lowercase and Uppercase Problem!
-- Punctuation Problem!
-- make OOVs
+From the table we can find that the accuracy increases with the decrease of k. The reason is that if we use large k, such as 1, the probability of words already appeared in corpus will be dominated by the V * k and quickly drop because of the tremendous V(in reuters, V is nearly 60000). And then the differences between candidate words will become smaller, making inference more difficult. Laplace smoothing isn't a really good smoothing method. And I suggest that k should be set to (1/ V) if possible.
 
+## Effect of language model
 
+| corpus  | k     | language model | channel model | accuracy(%) | time(s) |
+| ------- | ----- | -------------- | ------------- | ----------- | ------- |
+| reuters | 10^-6 | unigram        | √             | 87.6        | 11.3    |
+| reuters | 10^-6 | bigram         | √             | 96.7        | 18.0    |
+| reuters | 10^-6 | trigram        | √             | 99.2        | 18.7    |
 
-# Summary
+This result is reasonable. Something needs to be specified is that the program only check non-word when using unigram model(if we try to check real-word with unigram, it will be a disaster!).
 
-- 我使用了noisy_logprob + lm_logprob的方式，减少了real word误纠的问题
-- 我预先处理了数据集
-- 我发现使用极小的k能减少对lm的影响
-- 我没有处理标点符号的问题
-- 对confusion_matrix，大小写统一使用小写
-- 将不同路径叠加
-- 使用广义编辑距离，人们对于字符的交换操作频率远高于插入和删除（与键盘有关，输入容易交错）。如果对替换操作之后的子串，仍允许操作，可以发现能更好的反映noisy prob。
+## Effect of channel model
+
+| corpus  | k     | language model | channel model | accuracy(%) | time(s) |
+| ------- | ----- | -------------- | ------------- | ----------- | ------- |
+| reuters | 10^-6 | trigram        | √             | 99.2        | 18.7    |
+| reuters | 10^-6 | trigram        | ×             | 74.7        | 15.3    |
+
+The channel model plays an important role in the spell-correct task.
+
+# VI. Other Things
+
+- When dealing with the real word, I use the noisy_channel_prob * language_model_prob as the probability of the canidate words. And I assume that the noisy_channel_prob of the original word is 1, which makes the change for real word will be difficult and only the highly possible candidate word can be selected to substitute the original word.
+
+# Reference
+
+- https://www.geeksforgeeks.org/spell-checker-using-trie/
+- https://en.wikipedia.org/wiki/Damerau–Levenshtein_distance
+- http://norvig.com/ngrams/spell-errors.txt

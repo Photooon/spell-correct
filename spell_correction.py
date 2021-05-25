@@ -10,14 +10,13 @@ from nltk.tokenize import word_tokenize
 
 
 class SpellChecker:
-    def __init__(self, vocab_path):
-        self.lm = NgramModel('./models/unigram_logp',
-                             './models/bigram_logp',
-                             './models/trigram_logp')
-        confusion_from_paper = ConfusionMatrix('./confusion_matrix/data_from_paper/ins_confusion_matrix.txt',
-                                               './confusion_matrix/data_from_paper/del_confusion_matrix.txt',
-                                               './confusion_matrix/data_from_paper/sub_confusion_matrix.txt',
-                                               './confusion_matrix/data_from_paper/trans_confusion_matrix.txt')
+    def __init__(self,
+                 vocab_path='./vocab.txt',
+                 unigram_model_path='./models/reuters_unigram_logp',
+                 bigram_model_path='./models/reuters_bigram_logp',
+                 trigram_model_path='./models/reuters_trigram_logp'):
+        self.lm = NgramModel(unigram_model_path, bigram_model_path, trigram_model_path)
+        confusion_from_paper = ConfusionMatrix()
         self.cm = ChannelModel(vocab_path, confusion_from_paper)
         self.non_word_max_ed = 2  # Maximum of edit distance (the higher, the better)
         self.real_word_max_ed = 1  # recommended 1

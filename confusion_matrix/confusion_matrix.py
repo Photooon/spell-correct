@@ -42,14 +42,14 @@ def generate_confusion_matrix(error_path,
 
 
 def generate_confusion_logp(corpus_str,
-                            ins_count_confusion_path='./confusion_matrix/data_from_paper/addconfusion.data',
-                            del_count_confusion_path='./confusion_matrix/data_from_paper/delconfusion.data',
-                            sub_count_confusion_path='./confusion_matrix/data_from_paper/subconfusion.data',
-                            trans_count_confusion_path='./confusion_matrix/data_from_paper/revconfusion.data',
-                            ins_confusion_path='./confusion_matrix/data_from_paper/ins_confusion_matrix.txt',
-                            del_confusion_path='./confusion_matrix/data_from_paper/del_confusion_matrix.txt',
-                            sub_confusion_path='./confusion_matrix/data_from_paper/sub_confusion_matrix.txt',
-                            trans_confusion_path='./confusion_matrix/data_from_paper/trans_confusion_matrix.txt'):
+                            ins_count_confusion_path='./confusion_matrix/addconfusion.data',
+                            del_count_confusion_path='./confusion_matrix/delconfusion.data',
+                            sub_count_confusion_path='./confusion_matrix/subconfusion.data',
+                            trans_count_confusion_path='./confusion_matrix/revconfusion.data',
+                            ins_confusion_path='./confusion_matrix/ins_confusion_matrix.txt',
+                            del_confusion_path='./confusion_matrix/del_confusion_matrix.txt',
+                            sub_confusion_path='./confusion_matrix/sub_confusion_matrix.txt',
+                            trans_confusion_path='./confusion_matrix/trans_confusion_matrix.txt'):
     ins_count_dict = json.load(open(ins_count_confusion_path))
     del_count_dict = json.load(open(del_count_confusion_path))
     sub_count_dict = json.load(open(sub_count_confusion_path))

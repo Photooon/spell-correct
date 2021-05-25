@@ -9,19 +9,17 @@ class NgramModel:
         self.trigram = {}
         self.__load_from_json_file(unigram_path, bigram_path, trigram_path)
 
-    # def __init__(self, model_path):
-    #     self.unigram = {}
-    #     self.bigram = {}
-    #     self.trigram = {}
-    #     self.__load_from_file(model_path)
-
     def __load_from_json_file(self, unigram_path, bigram_path, trigram_path):
         self.unigram = json.load(open(unigram_path, 'r'))
         self.bigram = json.load(open(bigram_path, 'r'))
         self.trigram = json.load(open(trigram_path, 'r'))
 
     def __load_from_file(self, model_path):
-        # try:
+        """
+        load from srilm lm
+        :param model_path:
+        :return:
+        """
         with open(model_path, 'r') as f:
             raw_str = f.read()
             raw_blocks = raw_str.split('\\')
