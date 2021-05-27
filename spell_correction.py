@@ -84,8 +84,6 @@ class SpellChecker:
 
         for i in range(len(words)):
             real_word = words[i]
-            if real_word in string.punctuation:  # trick: skip the punctuation
-                continue
 
             # Get Candidates
             ed = 1

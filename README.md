@@ -16,7 +16,7 @@ Language model = add-k smoothing + backoff
 
 The model is showed as flow chart follow:
 
-![language_model](https://github.com/Photooon/spell-correct/blob/master/README.assets/language_model.png)
+![language_model](./README.assets/language_model.png)
 
 # IV. Channel model
 
